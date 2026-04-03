@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Degree Audit Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,700&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #f0ebe3;
+    --cream-dark: #e4ddd3;
+    --blue: #7eb8d4;
+    --blue-light: #b8d9ea;
+    --blue-dark: #4a8fad;
+    --ink: #1a1612;
+    --ink-mid: #4a443e;
+    --ink-light: #8a847e;
+    --green: #7aad8a;
+    --amber: #d4a44a;
+    --white: #faf8f5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--cream); color: var(--ink); font-family: 'Jost', sans-serif; font-weight: 300; min-height: 100vh; }
+
+  .upload-screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+  }
+  .upload-screen .big-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(3.5rem, 10vw, 7rem);
+    font-weight: 700;
+    font-style: italic;
+    line-height: 0.9;
+    letter-spacing: -2px;
+    margin-bottom: 0.5rem;
+  }
+  .upload-screen .small-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(1.2rem, 3vw, 1.8rem);
+    font-weight: 400;
+    color: var(--ink-mid);
+    margin-bottom: 3rem;
+  }
+  .upload-card {
+    background: var(--blue);
+    border-radius: 24px;
+    padding: 3rem 2.5rem;
+    width: 100%;
+    max-width: 420px;
+    cursor: pointer;
+    transition: transform 0.3s ease, background 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .upload-card:hover { transform: translateY(-4px); background: var(--blue-dark); }
+  .upload-card::after {
+    content: '';
+    position: absolute;
+    bottom: -30px; right: -30px;
+    width: 120px; height: 120px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 50%;
+  }
+  .upload-card input { display: none; }
+  .upload-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+  .upload-card h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 600; color: white; margin-bottom: 0.5rem; }
+  .upload-card p { font-size: 0.85rem; color: rgba(255,255,255,0.8); line-height: 1.5; }
+  .demo-btn { margin-top: 1.5rem; background: transparent; border: 1px solid var(--ink-light); color: var(--ink-mid); padding: 0.7rem 1.8rem; border-radius: 99px; font-family: 'Jost', sans-serif; font-size: 0.85rem; font-weight: 400; cursor: pointer; transition: all 0.2s; }
+  .demo-btn:hover { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+
+  .loading-screen {
+    min-height: 100vh;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+  }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 2px solid var(--cream-dark);
+    border-top-color: var(--blue-dark);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-screen p { font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; font-style: italic; color: var(--ink-mid); }
+
+  .dashboard { display: none; max-width: 1100px; margin: 0 auto; padding: 3rem 2rem 5rem; }
+
+  .dash-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 3rem; flex-wrap: wrap; gap: 1rem; }
+  .dash-header-left .eyebrow { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; color: var(--ink-light); margin-bottom: 0.5rem; }
+  .dash-header-left h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 700; font-style: italic; line-height: 1; }
+  .dash-header-left .major { font-size: 0.9rem; color: var(--ink-mid); margin-top: 0.5rem; }
+  .reset-btn { background: transparent; border: 1px solid var(--ink-light); color: var(--ink-mid); padding: 0.5rem 1.2rem; border-radius: 99px; font-family: 'Jost', sans-serif; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+  .reset-btn:hover { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 2.5rem; }
+  .metric { background: var(--white); border-radius: 16px; padding: 1.25rem 1rem; }
+  .metric.blue-card { background: var(--blue); }
+  .metric-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--ink-light); margin-bottom: 0.5rem; }
+  .metric.blue-card .metric-label { color: rgba(255,255,255,0.75); }
+  .metric-value { font-family: 'Cormorant Garamond', serif; font-size: 2.8rem; font-weight: 700; line-height: 1; color: var(--ink); }
+  .metric.blue-card .metric-value { color: white; }
+  .metric-sub { font-size: 0.75rem; color: var(--ink-light); margin-top: 0.3rem; }
+  .metric.blue-card .metric-sub { color: rgba(255,255,255,0.7); }
+
+  .progress-section { background: var(--white); border-radius: 16px; padding: 1.5rem 1.75rem; margin-bottom: 2.5rem; }
+  .progress-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1rem; }
+  .progress-top span { font-size: 0.8rem; color: var(--ink-light); text-transform: uppercase; letter-spacing: 2px; }
+  .progress-top strong { font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; font-weight: 700; }
+  .progress-track { height: 10px; background: var(--cream-dark); border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--blue-dark); border-radius: 99px; width: 0%; transition: width 1.2s cubic-bezier(0.4,0,0.2,1); }
+  .progress-legend { display: flex; gap: 1.5rem; margin-top: 1rem; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--ink-mid); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+  .two-col { display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; margin-bottom: 2.5rem; align-items: start; }
+  @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+  .chart-card { background: var(--white); border-radius: 16px; padding: 1.5rem; }
+  .chart-card h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-style: italic; color: var(--ink-mid); margin-bottom: 1.25rem; }
+  .chart-wrap { position: relative; width: 100%; height: 200px; }
+
+  .courses-section h2 { font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; font-weight: 700; font-style: italic; margin-bottom: 1.25rem; }
+  .filter-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .tab { padding: 0.45rem 1.1rem; border-radius: 99px; border: 1px solid var(--cream-dark); background: transparent; font-family: 'Jost', sans-serif; font-size: 0.8rem; font-weight: 400; color: var(--ink-mid); cursor: pointer; transition: all 0.15s; }
+  .tab.active { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+  .tab:hover:not(.active) { border-color: var(--ink-light); }
+
+  .category-section { margin-bottom: 2rem; }
+  .category-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--cream-dark); }
+  .category-label span { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 2px; color: var(--ink-light); }
+  .category-label strong { font-size: 0.78rem; color: var(--ink-mid); }
+  .course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+  .course-card { background: var(--white); border-radius: 14px; padding: 1rem 1.1rem; transition: transform 0.2s; }
+  .course-card:hover { transform: translateY(-3px); }
+  .course-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; }
+  .course-code { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--ink-light); }
+  .course-grade { font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-weight: 700; color: var(--ink); }
+  .course-name { font-size: 0.85rem; font-weight: 400; line-height: 1.35; margin-bottom: 0.75rem; color: var(--ink); }
+  .course-footer { display: flex; justify-content: space-between; align-items: center; }
+  .badge { font-size: 0.68rem; font-weight: 500; padding: 3px 10px; border-radius: 99px; letter-spacing: 0.5px; }
+  .badge.completed { background: #dff0e4; color: #2d7a48; }
+  .badge.current { background: #dceef7; color: #2a6d90; }
+  .badge.remaining { background: #fdf0d8; color: #9a6b1a; }
+  .course-credits { font-size: 0.75rem; color: var(--ink-light); }
+  .empty-state { text-align: center; padding: 2.5rem; color: var(--ink-light); font-style: italic; font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; }
+  .error-msg { background: #fde8e8; color: #9a2a2a; border-radius: 12px; padding: 1rem 1.25rem; font-size: 0.85rem; margin-bottom: 1.5rem; display: none; }
+</style>
+</head>
+<body>
+
+<div class="upload-screen" id="upload-screen">
+  <p class="small-title">Welcome to your</p>
+  <h1 class="big-title">Degree Audit</h1>
+  <p class="small-title" style="margin-top:0.25rem; margin-bottom:2.5rem;">Dashboard</p>
+  <div class="upload-card" onclick="document.getElementById('file-input').click()">
+    <input type="file" id="file-input" accept=".pdf" onchange="handleFile(event)">
+    <div class="upload-icon">📄</div>
+    <h3>Upload your audit PDF</h3>
+    <p>Drop your degree audit and get an instant visual breakdown of your academic progress</p>
+  </div>
+  <button class="demo-btn" onclick="loadDemo()">Preview with demo data</button>
+</div>
+
+<div class="loading-screen" id="loading-screen">
+  <div class="spinner"></div>
+  <p>Reading your degree audit...</p>
+</div>
+
+<div class="dashboard" id="dashboard">
+  <div class="error-msg" id="error-msg"></div>
+  <div class="dash-header">
+    <div class="dash-header-left">
+      <div class="eyebrow">Academic Progress</div>
+      <h1 id="dash-name"></h1>
+      <div class="major" id="dash-major"></div>
+    </div>
+    <button class="reset-btn" onclick="resetApp()">Upload new audit</button>
+  </div>
+  <div class="metrics" id="metrics"></div>
+  <div class="progress-section">
+    <div class="progress-top">
+      <span>Degree completion</span>
+      <strong id="pct-label">0%</strong>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="progress-legend" id="progress-legend"></div>
+  </div>
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>Credit breakdown</h3>
+      <div class="chart-wrap"><canvas id="donut-chart"></canvas></div>
+    </div>
+    <div class="courses-section">
+      <h2>Courses</h2>
+      <div class="filter-tabs">
+        <button class="tab active" onclick="filterCourses('all',this)">All</button>
+        <button class="tab" onclick="filterCourses('completed',this)">Completed</button>
+        <button class="tab" onclick="filterCourses('current',this)">In progress</button>
+        <button class="tab" onclick="filterCourses('remaining',this)">Still needed</button>
+      </div>
+      <div id="course-container"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+let allCourses = [];
+let chartInst = null;
+
+function show(id) {
+  ['upload-screen','loading-screen','dashboard'].forEach(s => {
+    const el = document.getElementById(s);
+    el.style.display = 'none';
+  });
+  const t = document.getElementById(id);
+  if (id === 'loading-screen') { t.style.display = 'flex'; }
+  else if (id === 'dashboard') { t.style.display = 'block'; }
+  else { t.style.display = 'flex'; }
+}
+
+function resetApp() {
+  show('upload-screen');
+  document.getElementById('error-msg').style.display = 'none';
+  document.getElementById('file-input').value = '';
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.style.display = 'block';
+  el.textContent = msg;
+}
+
+async function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  show('loading-screen');
+  try {
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    let text = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(x => x.str).join(' ') + '\n';
+    }
+    await parseWithAI(text);
+  } catch(err) {
+    show('dashboard');
+    showError('Could not read the PDF. Make sure it is a text-based PDF (not a scanned image). ' + err.message);
+  }
+}
+
+async function parseWithAI(text) {
+  try {
+    const snippet = text.substring(0, 8000);
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `Parse this degree audit and return ONLY a valid JSON object with no markdown, no explanation:
+{
+  "studentName": "string",
+  "major": "string",
+  "university": "string",
+  "creditsCompleted": number,
+  "creditsInProgress": number,
+  "creditsRequired": number,
+  "gpa": "string or null",
+  "courses": [
+    { "code": "string", "name": "string", "credits": number, "status": "completed|current|remaining", "grade": "string or null", "category": "string" }
+  ]
+}
+Status: completed=passed, current=enrolled now, remaining=still needed.
+Categories: Major Core, General Education, Elective, Mathematics, etc.
+Text: ${snippet}`
+        }]
+      })
+    });
+    const data = await resp.json();
+    const raw = data.content[0].text.replace(/```json|```/g,'').trim();
+    renderDashboard(JSON.parse(raw));
+  } catch(err) {
+    show('dashboard');
+    showError('Could not parse the audit content. Try loading demo data to preview the dashboard. ' + err.message);
+  }
+}
+
+function renderDashboard(d) {
+  document.getElementById('dash-name').textContent = d.studentName || 'Student';
+  document.getElementById('dash-major').textContent = (d.major || '') + (d.university ? ' · ' + d.university : '');
+  const done = d.creditsCompleted || 0;
+  const prog = d.creditsInProgress || 0;
+  const req = d.creditsRequired || 120;
+  const left = Math.max(0, req - done - prog);
+  const pct = Math.min(100, Math.round((done / req) * 100));
+
+  document.getElementById('metrics').innerHTML = `
+    <div class="metric blue-card">
+      <div class="metric-label">Credits earned</div>
+      <div class="metric-value">${done}</div>
+      <div class="metric-sub">of ${req} required</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">In progress</div>
+      <div class="metric-value">${prog}</div>
+      <div class="metric-sub">this semester</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Still needed</div>
+      <div class="metric-value">${left}</div>
+      <div class="metric-sub">credits remaining</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">GPA</div>
+      <div class="metric-value">${d.gpa || '—'}</div>
+      <div class="metric-sub">cumulative</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Completion</div>
+      <div class="metric-value">${pct}%</div>
+      <div class="metric-sub">of degree</div>
+    </div>`;
+
+  document.getElementById('pct-label').textContent = pct + '%';
+  setTimeout(() => { document.getElementById('progress-fill').style.width = pct + '%'; }, 100);
+  document.getElementById('progress-legend').innerHTML = [
+    { color: '#4a8fad', label: 'Completed', val: done },
+    { color: '#7eb8d4', label: 'In progress', val: prog },
+    { color: '#d9d3cb', label: 'Remaining', val: left }
+  ].map(l => `<div class="legend-item"><div class="legend-dot" style="background:${l.color}"></div>${l.label} — ${l.val} cr</div>`).join('');
+
+  if (chartInst) chartInst.destroy();
+  chartInst = new Chart(document.getElementById('donut-chart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Completed','In progress','Remaining'],
+      datasets: [{ data: [done, prog, left], backgroundColor: ['#4a8fad','#7eb8d4','#d9d3cb'], borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '72%',
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + c.parsed + ' credits' } } }
+    }
+  });
+
+  allCourses = d.courses || [];
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab')[0].classList.add('active');
+  filterCourses('all', document.querySelectorAll('.tab')[0]);
+  show('dashboard');
+}
+
+function filterCourses(status, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  const list = status === 'all' ? allCourses : allCourses.filter(c => c.status === status);
+  const container = document.getElementById('course-container');
+  if (!list.length) { container.innerHTML = '<div class="empty-state">No courses in this category</div>'; return; }
+  const cats = [...new Set(list.map(c => c.category || 'Other'))];
+  container.innerHTML = '';
+  cats.forEach(cat => {
+    const courses = list.filter(c => (c.category || 'Other') === cat);
+    const totalCr = courses.reduce((s,c) => s + (c.credits||0), 0);
+    const sec = document.createElement('div');
+    sec.className = 'category-section';
+    sec.innerHTML = `<div class="category-label"><span>${cat}</span><strong>${totalCr} credits</strong></div><div class="course-grid"></div>`;
+    const grid = sec.querySelector('.course-grid');
+    courses.forEach(c => {
+      const bc = c.status === 'completed' ? 'completed' : c.status === 'current' ? 'current' : 'remaining';
+      const bt = c.status === 'completed' ? 'Completed' : c.status === 'current' ? 'In progress' : 'Needed';
+      grid.innerHTML += `
+        <div class="course-card">
+          <div class="course-top">
+            <span class="course-code">${c.code||''}</span>
+            ${c.grade ? `<span class="course-grade">${c.grade}</span>` : ''}
+          </div>
+          <div class="course-name">${c.name}</div>
+          <div class="course-footer">
+            <span class="badge ${bc}">${bt}</span>
+            <span class="course-credits">${c.credits||0} cr</span>
+          </div>
+        </div>`;
+    });
+    container.appendChild(sec);
+  });
+}
+
+function loadDemo() {
+  renderDashboard({
+    studentName: "Maya Chen",
+    major: "Psychology",
+    university: "Westlake State University",
+    creditsCompleted: 74, creditsInProgress: 12, creditsRequired: 128, gpa: "3.6",
+    courses: [
+      { code:"PSYC 101", name:"Introduction to Psychology", credits:3, status:"completed", grade:"A", category:"Major Core" },
+      { code:"PSYC 210", name:"Research Methods", credits:3, status:"completed", grade:"A-", category:"Major Core" },
+      { code:"PSYC 220", name:"Statistics for Behavioral Sciences", credits:3, status:"completed", grade:"B+", category:"Major Core" },
+      { code:"PSYC 305", name:"Abnormal Psychology", credits:3, status:"completed", grade:"A", category:"Major Core" },
+      { code:"PSYC 310", name:"Developmental Psychology", credits:3, status:"completed", grade:"A-", category:"Major Core" },
+      { code:"PSYC 320", name:"Social Psychology", credits:3, status:"current", grade:null, category:"Major Core" },
+      { code:"PSYC 410", name:"Cognitive Psychology", credits:3, status:"remaining", grade:null, category:"Major Core" },
+      { code:"PSYC 450", name:"Psychological Testing", credits:3, status:"remaining", grade:null, category:"Major Core" },
+      { code:"PSYC 490", name:"Senior Thesis", credits:6, status:"remaining", grade:null, category:"Major Core" },
+      { code:"BIOL 101", name:"Introduction to Biology", credits:4, status:"completed", grade:"B+", category:"Natural Sciences" },
+      { code:"BIOL 102", name:"Biology Lab", credits:1, status:"completed", grade:"A-", category:"Natural Sciences" },
+      { code:"NEUR 201", name:"Introduction to Neuroscience", credits:3, status:"completed", grade:"A", category:"Natural Sciences" },
+      { code:"NEUR 310", name:"Behavioral Neuroscience", credits:3, status:"current", grade:null, category:"Natural Sciences" },
+      { code:"MATH 115", name:"College Algebra", credits:3, status:"completed", grade:"A", category:"Mathematics" },
+      { code:"MATH 201", name:"Introductory Statistics", credits:3, status:"completed", grade:"B+", category:"Mathematics" },
+      { code:"ENGL 101", name:"English Composition I", credits:3, status:"completed", grade:"A", category:"General Education" },
+      { code:"ENGL 102", name:"English Composition II", credits:3, status:"completed", grade:"A-", category:"General Education" },
+      { code:"COMM 150", name:"Public Speaking", credits:3, status:"completed", grade:"A", category:"General Education" },
+      { code:"PHIL 101", name:"Introduction to Philosophy", credits:3, status:"completed", grade:"B+", category:"General Education" },
+      { code:"HIST 201", name:"World History I", credits:3, status:"completed", grade:"A-", category:"General Education" },
+      { code:"HIST 202", name:"World History II", credits:3, status:"remaining", grade:null, category:"General Education" },
+      { code:"SOC 101", name:"Introduction to Sociology", credits:3, status:"completed", grade:"A", category:"Social Sciences" },
+      { code:"ANTH 205", name:"Cultural Anthropology", credits:3, status:"completed", grade:"B+", category:"Social Sciences" },
+      { code:"ECON 101", name:"Principles of Economics", credits:3, status:"current", grade:null, category:"Social Sciences" },
+      { code:"PSYC 380", name:"Health Psychology", credits:3, status:"remaining", grade:null, category:"Electives" },
+      { code:"PSYC 390", name:"Industrial Psychology", credits:3, status:"remaining", grade:null, category:"Electives" },
+    ]
+  });
+}
+</script>
+</body>
+</html>
